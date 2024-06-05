@@ -9,16 +9,19 @@ import clr
 from System import Decimal
 
 # establishing directories
-csv_dump = 'C:/Users/jbull/OneDrive/Documents/School/MADLASR/madlasr_results_csv/'
-plot_dump = 'C:/Users/jbull/OneDrive/Documents/School/MADLASR/madlasr_plots/'
+# edit to your own desired directory
+csv_dump = 
+plot_dump = 
 
 # establishing constants
-intens = 3.05e-5/0.04608 # initial intensity of laser derived from LSRS sample (4.608% reflectivity at 10 degrees)
-#intens = 3.35e-5/0.04608
+# 'ref_test' function can be run to recalibrate the 'intens' variable
+intens = 2.92e-5/0.04608 # initial intensity of laser derived from LSRS sample (4.608% reflectivity at 10 degrees)
+#intens = 3.05e-5/0.04608
 today = str(date.today())
 title = None
 
 # importing from Kinesis for travel stages
+# ensure to have kinesis drivers installed,
 clr.AddReference("C:\\Program Files\\Thorlabs\\Kinesis\\Thorlabs.MotionControl.DeviceManagerCLI.dll")
 clr.AddReference("C:\\Program Files\\Thorlabs\\Kinesis\\Thorlabs.MotionControl.GenericMotorCLI.dll")
 clr.AddReference("C:\\Program Files\\Thorlabs\\Kinesis\\ThorLabs.MotionControl.IntegratedStepperMotorsCLI.dll")
@@ -27,7 +30,7 @@ from Thorlabs.MotionControl.GenericMotorCLI import *
 from Thorlabs.MotionControl.IntegratedStepperMotorsCLI import *
 
 # connecting/setting up powermeter
-tlPM = TLPM() # ensure that the TLPM python library and TLPM DLL are inside same folder containing this script
+tlPM = TLPM() # ensure that the TLPM python library and TLPM DLL are inside same folder containing this script, files included on github
 deviceCount = c_uint32()
 tlPM.findRsrc(byref(deviceCount))
 
@@ -125,6 +128,8 @@ vel_powermeter.MaxVelocity = Decimal(10.0)
 powermeter.SetVelocityParams(vel_powermeter)
 
 # Laser intensity calibration
+# Sets device to take spec reflection measurements of reference sample at 10 deg separation
+# Final value is used to calculate total intensity of laser used in 'intens' variable
 def ref_test():
     print()
     print('Testing reference sample')
@@ -168,18 +173,18 @@ def specular():
         pos -= 5 # increment amount that travel stages move between each measurement (mm)
 
     # Plotting data
-    plt.plot(values[0],100*values[1]/intens)
+    plt.plot(values[0],values[1]/intens)
     plt.grid()
     plt.title(title+' Specular Reflectivity')
     plt.xlabel('Separation Angle (Degrees)')
-    plt.ylabel('Specular Reflectance (%)')
+    plt.ylabel('Specular Reflectance (Fraction)')
     plt.savefig(plot_dump+title + '_' + today + '_spec.jpeg')
     plt.show()
 
     # Saving specular data to csv
     df.insert(0,"Angle (Degrees)",values[0],True)
     df.insert(1,"Power (W)",values[1],True)
-    df.insert(2,"Specular Reflectance (%)",values[1]/intens,True)
+    df.insert(2,"Specular Reflectance (Measured / Total)",values[1]/intens,True) # measurements divided by intensity of laser as determined by reference sample (intens)
     df.to_csv(csv_dump+title+'_'+today+'_spec.csv',index=False)
 
 # testing lambertian reflections
@@ -210,11 +215,11 @@ def lambertian():
         pos -= 5
 
     # Plotting data
-    plt.plot(values[0],100*values[1]/intens)
+    plt.plot(values[0],values[1]/intens)
     plt.grid()
     plt.title(title+' Lambertian Reflectivity')
     plt.xlabel('Separation Angle (Degrees)')
-    plt.ylabel('Lambertian Reflectance (%)')
+    plt.ylabel('Lambertian Reflectance (Fraction)')
     plt.savefig(plot_dump+title + '_' + today + '_lamb.jpeg')
     plt.show()
 
